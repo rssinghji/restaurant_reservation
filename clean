@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Remove the go binary
+go clean
+
+# Remove the generated coverage.html file. Comment the following line if you want to retain the coverage file.
+# rm -f coverage.html
+rm -f coverage.out

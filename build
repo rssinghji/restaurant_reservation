@@ -1,0 +1,23 @@
+#!/bin/bash
+
+echo -e "\n Running tests first ...."
+
+# Test the code first. Intent is, if the test(s) fails, the build should fail. That's fundamentally first step of CICD.
+# Run the tests
+TestResults=$(./test)
+
+# Find any failure in tests
+echo $TestResults | grep 'FAIL'
+
+# Take action if failure happens
+if [ $? -eq 0 ]
+then
+echo -e "\nSome Tests FAILED. Stopping the build. Please make sure all tests pass.\n"
+exit 9
+
+fi
+# Build the go binary, include race flag for checking race conditions
+echo -e "\nAll tests passed, building the code\n"
+go build -race -o reservation_system
+
+echo -e "Build Completed successfully\n"

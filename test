@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Test your code
+go test -race -v -p 1 ./api/ -coverprofile=coverage.out
+
+# Get coverage onterminal
+go tool cover -html=coverage.out -o coverage.html
+rm -f coverage.out
+
+# Delete any temporary(tmp) files generated during testing and
+# Clean the repo so that you can make a fresh build after testing and push changes
+./clean

@@ -1,0 +1,776 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>api: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">reservation_system/api/api_handlers.go (78.3%)</option>
+				
+				<option value="file1">reservation_system/api/api_helper.go (96.5%)</option>
+				
+				<option value="file2">reservation_system/api/auto_cancelation.go (58.8%)</option>
+				
+				<option value="file3">reservation_system/api/waitlist_management.go (71.7%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package api
+
+import (
+        "encoding/json"
+        "fmt"
+        "log"
+        "net/http"
+        util "reservation_system/utilities"
+)
+
+// HandleDefault : Default API handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleDefault - Serves the default message for the default handler
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleDefault(response http.ResponseWriter, request *http.Request)
+*/
+func HandleDefault(response http.ResponseWriter, request *http.Request) <span class="cov1" title="1">{
+        response.WriteHeader(http.StatusOK)
+        response.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(response, `{"message":"The server is up. Use other endpoints for reservation"}`)
+}</span>
+
+// HandleAddReservation : Add reservation API Handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleAddReservation - Receives a POST request to add a reservation and adds it to a queue of reservations if no slots
+                                  until confirmed or cancelled
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleAddReservation(response http.ResponseWriter, request *http.Request)
+*/
+func HandleAddReservation(response http.ResponseWriter, request *http.Request) <span class="cov10" title="4">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "POST" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                // fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov8" title="3">reservationRequest := util.ReservationDetails{}
+        err := json.NewDecoder(request.Body).Decode(&amp;reservationRequest)
+        if err != nil </span><span class="cov5" title="2">{
+                log.Println(err)
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        // Check for date time validity for the request
+        <span class="cov1" title="1">isValid, err := IsRequestValid(reservationRequest)
+        if err != nil </span><span class="cov0" title="0">{
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        <span class="cov1" title="1">if isValid </span><span class="cov1" title="1">{
+                // Add the reservation to the queue or the datastore
+                msg, err := AddReservation(reservationRequest)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println("Error in adding reservation: ", err)
+                        response.WriteHeader(http.StatusInternalServerError)
+                        fmt.Fprintf(response, util.ErrorMessageServerError)
+                        return
+                }</span>
+                <span class="cov1" title="1">log.Println("Request ", request.URL.Path, " processed successfully")
+                response.WriteHeader(http.StatusOK)
+                response.Header().Set("Content-Type", "application/json")
+                fmt.Fprint(response, msg)
+                return</span>
+        }
+        <span class="cov0" title="0">log.Println("Not added, something went wrong")
+        response.WriteHeader(http.StatusInternalServerError)
+        fmt.Fprintf(response, util.ErrorMessageServerError)</span>
+}
+
+// HandleViewReservations : View reservation by date API Handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleViewReservations - Receives a GET request to view all reservations for a day time wise
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleViewReservations(response http.ResponseWriter, request *http.Request)
+*/
+func HandleViewReservations(response http.ResponseWriter, request *http.Request) <span class="cov8" title="3">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "GET" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov5" title="2">param := request.URL.Query().Get("date")
+        if len(param) != 10 </span><span class="cov1" title="1">{
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        <span class="cov1" title="1">result, err := ViewReservationsByDate("default", param)
+        if err != nil </span><span class="cov0" title="0">{
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+                return
+        }</span>
+
+        <span class="cov1" title="1">jsonResponse, err := json.Marshal(result)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Something went wrong. ", err.Error())
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+        }</span> else<span class="cov1" title="1"> {
+                log.Println("Request ", request.URL.Path, "processed successfully!")
+                response.WriteHeader(http.StatusOK)
+                fmt.Fprintf(response, "%s", string(jsonResponse[:]))
+        }</span>
+}
+
+// HandleCancelReservation : Cancel reservation API Handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleCancelReservation - Receives a POST request to cancel a reservation and remove it from the datastore
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleCancelReservation(response http.ResponseWriter, request *http.Request)
+*/
+func HandleCancelReservation(response http.ResponseWriter, request *http.Request) <span class="cov8" title="3">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "POST" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov5" title="2">cancellationrequest := util.ReservationDetails{}
+        err := json.NewDecoder(request.Body).Decode(&amp;cancellationrequest)
+        if err != nil </span><span class="cov1" title="1">{
+                log.Println(err)
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        <span class="cov1" title="1">result, err := CancelReservation(cancellationrequest)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Error in cancelation of request: ", err)
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+                return
+        }</span>
+
+        <span class="cov1" title="1">log.Println("Request ", request.URL.Path, "processed successfully!")
+        response.WriteHeader(http.StatusOK)
+        response.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(response, result)</span>
+}
+
+// HandleConfirmReservation : Confirm reservation API Handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleConfirmReservation - Receives a POST request to confirm a reservation and adds it to a the datastore
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleConfirmReservation(response http.ResponseWriter, request *http.Request)
+*/
+func HandleConfirmReservation(response http.ResponseWriter, request *http.Request) <span class="cov8" title="3">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "POST" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov5" title="2">confirmation := util.ConfirmReservation{}
+        err := json.NewDecoder(request.Body).Decode(&amp;confirmation)
+        if err != nil </span><span class="cov1" title="1">{
+                log.Println(err)
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        <span class="cov1" title="1">msg, err := ConfirmReservation(confirmation)
+        if err != nil </span><span class="cov0" title="0">{
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+                return
+        }</span>
+
+        <span class="cov1" title="1">log.Println("Request ", request.URL.Path, "processed successfully!")
+        response.WriteHeader(http.StatusOK)
+        response.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(response, msg)</span>
+}
+
+// HandleViewWaitingList : View Waiting List of reservation API Handler
+/*
+        Author                : Ravneet Singh
+        Function         : HandleViewWaitingList - Receives a GET request to view all reservations for a day time wise
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleViewWaitingList(response http.ResponseWriter, request *http.Request)
+*/
+func HandleViewWaitingList(response http.ResponseWriter, request *http.Request) <span class="cov5" title="2">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "GET" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov1" title="1">queue.Mutex.Lock()
+        result := queue.Queue
+        queue.Mutex.Unlock()
+        jsonResponse, err := json.Marshal(result)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Something went wrong. ", err.Error())
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+        }</span>
+
+        <span class="cov1" title="1">log.Println("Request ", request.URL.Path, "processed successfully!")
+        response.WriteHeader(http.StatusOK)
+        fmt.Fprintf(response, "%s", string(jsonResponse[:]))</span>
+}
+
+// HandleShowAvailability : Show available slots by location and day
+/*
+        Author                : Ravneet Singh
+        Function         : HandleShowAvailability - Receives a GET request to view all reservations for a day time wise
+        Input(s)         : http.ResponseWriter, *http.Request (http.ResponseWriter to serve the response and *http.Request to process the request)
+        Output(s)         : None
+        Example(s)         : HandleShowAvailability(response http.ResponseWriter, request *http.Request)
+*/
+func HandleShowAvailability(response http.ResponseWriter, request *http.Request) <span class="cov8" title="3">{
+        response.Header().Set("Content-Type", "application/json")
+        if request.Method != "GET" </span><span class="cov1" title="1">{
+                http.Error(response, `{"error":"Wrong HTTP method specified"}`, http.StatusMethodNotAllowed)
+                fmt.Fprintf(response, util.ErrorMessageWrongMethod)
+                return
+        }</span>
+
+        <span class="cov5" title="2">location := request.URL.Query().Get("location")
+        if location == "" </span><span class="cov0" title="0">{
+                location = "default"
+        }</span>
+        <span class="cov5" title="2">date := request.URL.Query().Get("date")
+        if len(date) != 10 </span><span class="cov1" title="1">{
+                response.WriteHeader(http.StatusBadRequest)
+                fmt.Fprintf(response, util.ErrorMessageBadrequest)
+                return
+        }</span>
+
+        <span class="cov1" title="1">result := GetAvailabilities(location, date)
+        jsonResponse, err := json.Marshal(result)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Println("Something went wrong. ", err.Error())
+                response.WriteHeader(http.StatusInternalServerError)
+                fmt.Fprintf(response, util.ErrorMessageServerError)
+        }</span>
+        <span class="cov1" title="1">log.Println("Request ", request.URL.Path, "processed successfully!")
+        response.WriteHeader(http.StatusOK)
+        fmt.Fprintf(response, "%s", string(jsonResponse[:]))</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package api
+
+import (
+        "fmt"
+        "log"
+        util "reservation_system/utilities"
+        "sort"
+        "strconv"
+        "strings"
+        "time"
+)
+
+var queue util.ReservationQueue
+var reservation util.Reservation
+var windowOrder = []string{"10AM-11AM", "11AM-12PM", "12PM-1PM", "1PM-2PM", "2PM-3PM", "3PM-4PM", "4PM-5PM", "5PM-6PM", "6PM-7PM",
+        "7PM-8PM", "8PM-9PM", "9PM-10PM"}
+var peakTimes = []string{"6PM-7PM", "7PM-8PM"}
+
+// init() : initialize the queue and reservation system
+func init() <span class="cov1" title="1">{
+        windowsList := make([]string, 0)
+        reservationList := make([]util.ReservationDetails, 0)
+        queue.Queue = reservationList
+        queue.Windows = windowsList
+
+        reservation.CountMap = make(map[string]int)
+        reservation.DetailsMap = make(map[string]util.ReservationResponse)
+        go waitListCleanUp(1800)
+}</span>
+
+// getWindow() : A function to convert request to a time window
+func getWindow(time string) (string, error) <span class="cov8" title="25">{
+        log.Println("Running getWindow()")
+        timeOfDay := "AM" // default it to morning
+        timeSplits := strings.Split(time, ":")
+        minutes := strings.Split(timeSplits[1], " ")
+        timeOfDay = minutes[1]
+        timeHour, err := strconv.Atoi(timeSplits[0])
+        if err != nil </span><span class="cov1" title="1">{
+                log.Println("Error in hour extraction for reservation")
+                return "Error in hour extraction for reservation", fmt.Errorf("error in hour extraction for reservation")
+        }</span>
+
+        <span class="cov8" title="24">switch </span>{
+        case timeHour &gt;= 10 &amp;&amp; timeHour &lt; 11 &amp;&amp; timeOfDay == "AM":<span class="cov1" title="1">
+                return "10AM-11AM", nil</span>
+        case timeHour &gt;= 11 &amp;&amp; timeHour &lt; 12 &amp;&amp; timeOfDay == "AM":<span class="cov5" title="8">
+                return "11AM-12PM", nil</span>
+        case timeHour &gt;= 12 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "12PM-1PM", nil</span>
+        case timeHour &gt;= 1 &amp;&amp; timeHour &lt; 2 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "1PM-2PM", nil</span>
+        case timeHour &gt;= 2 &amp;&amp; timeHour &lt; 3 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "2PM-3PM", nil</span>
+        case timeHour &gt;= 3 &amp;&amp; timeHour &lt; 4 &amp;&amp; timeOfDay == "PM":<span class="cov2" title="2">
+                return "3PM-4PM", nil</span>
+        case timeHour &gt;= 4 &amp;&amp; timeHour &lt; 5 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "4PM-5PM", nil</span>
+        case timeHour &gt;= 5 &amp;&amp; timeHour &lt; 6 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "5PM-6PM", nil</span>
+        case timeHour &gt;= 6 &amp;&amp; timeHour &lt; 7 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "6PM-7PM", nil</span>
+        case timeHour &gt;= 7 &amp;&amp; timeHour &lt; 8 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "7PM-8PM", nil</span>
+        case timeHour &gt;= 8 &amp;&amp; timeHour &lt; 9 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "8PM-9PM", nil</span>
+        case timeHour &gt;= 9 &amp;&amp; timeHour &lt; 10 &amp;&amp; timeOfDay == "PM":<span class="cov1" title="1">
+                return "9PM-10PM", nil</span>
+        default:<span class="cov4" title="4">
+                // Should never come here
+                return "Requested time is outside working hours, open from 10 AM to 10 PM", fmt.Errorf("requested time is outside working hours, open from 10 AM to 10 PM")</span>
+        }
+}
+
+// getMaxOccupancy() : A function to tell how many open slots based on peak times
+func getMaxOccupancy(window string) int <span class="cov8" title="29">{
+        maxOccupancy := 4
+        for _, value := range peakTimes </span><span class="cov10" title="55">{
+                if window == value </span><span class="cov5" title="6">{
+                        maxOccupancy = 3
+                        break</span>
+                }
+        }
+        <span class="cov8" title="29">return maxOccupancy</span>
+}
+
+// IsRequestValid() : To check if the reservation request is valid against time constraints
+func IsRequestValid(resRequest util.ReservationDetails) (bool, error) <span class="cov5" title="6">{
+        log.Println("Running IsRequestValid()")
+        currentDateTime := time.Now().Local()
+        layout := "2006-01-02 15:04 PM"
+        current := currentDateTime.Format(layout)
+        reqDateTime := resRequest.Date + " " + resRequest.Time
+        requestedTime, err := time.Parse(layout, reqDateTime)
+        if err != nil </span><span class="cov1" title="1">{
+                return false, fmt.Errorf("error in parsing date-time from requested value")
+        }</span>
+        <span class="cov4" title="5">originalTime, _ := time.Parse(layout, current)
+
+        // If requestedTime has already passed
+        if requestedTime.Before(originalTime) </span><span class="cov1" title="1">{
+                return false, fmt.Errorf("requested time has already passed, try new time and at least 5 minutes ahead")
+        }</span>
+
+        <span class="cov4" title="4">if requestedTime.Hour() &lt; 10 || requestedTime.Hour() &gt;= 22 </span><span class="cov2" title="2">{
+                return false, fmt.Errorf("requested time is outside working hours, open from 10 AM to 10 PM")
+        }</span>
+
+        <span class="cov2" title="2">if requestedTime.After(originalTime.Add(5 * time.Minute)) </span><span class="cov2" title="2">{
+                return true, nil
+        }</span>
+        <span class="cov0" title="0">return false, nil</span> // internal server error, something happened and code reached here
+}
+
+// AddReservation() : Adds a reservation to the datatore
+func AddReservation(resReq util.ReservationDetails) (string, error) <span class="cov3" title="3">{
+        log.Println("Running addRequest()")
+        responseObject := util.ReservationResponse{Name: resReq.Name, Date: resReq.Date, Time: resReq.Time, Email: resReq.Email}
+        location := "default"
+        if resReq.Location != "" </span><span class="cov2" title="2">{
+                location = resReq.Location
+        }</span>
+        <span class="cov3" title="3">responseObject.Location = location
+        responseObject.Status = "WAITING"
+        window, err := getWindow(resReq.Time)
+        if err != nil </span><span class="cov1" title="1">{
+                return err.Error(), err
+        }</span>
+
+        // Fetch max occupancy for the reservation window
+        <span class="cov2" title="2">maxOccupancy := getMaxOccupancy(window)
+
+        // Prepare to store info
+        windowKey := location + "-" + resReq.Date + "-" + window
+        detailsKey := windowKey + "-" + resReq.Name
+        msg := util.SuccessAddReservationMessage
+        responseObject.RequestTime = time.Now()
+        if count, ok := reservation.CountMap[windowKey]; ok </span><span class="cov1" title="1">{
+                if count == maxOccupancy </span><span class="cov1" title="1">{
+                        queue.Mutex.Lock()
+                        queue.Windows = append(queue.Windows, window)
+                        queue.Queue = append(queue.Queue, resReq)
+                        queue.Mutex.Unlock()
+                        msg = util.SuccessAddWaitlistMessage
+                        return msg, nil
+                }</span> else<span class="cov0" title="0"> {
+                        reservation.Mutex.Lock()
+                        reservation.DetailsMap[detailsKey] = responseObject
+                        reservation.CountMap[windowKey] = count + 1
+                        reservation.Mutex.Unlock()
+                }</span>
+        } else<span class="cov1" title="1"> {
+                reservation.Mutex.Lock()
+                reservation.DetailsMap[detailsKey] = responseObject
+                reservation.CountMap[windowKey] = 1
+                reservation.Mutex.Unlock()
+        }</span>
+
+        // Launch a go routine for auto cancellation in 2 minutes or 120 seconds
+        <span class="cov1" title="1">go waitForConfirmation(windowKey, detailsKey, 120)
+
+        return msg, nil</span>
+}
+
+// ViewReservationsByDate() : Returns all the reservations by date for a location
+func ViewReservationsByDate(location, date string) (map[string][]util.ReservationResponse, error) <span class="cov2" title="2">{
+        result := make(map[string][]util.ReservationResponse)
+        reservation.Mutex.Lock()
+        defer reservation.Mutex.Unlock()
+        for _, window := range windowOrder </span><span class="cov8" title="24">{
+                reservedSlots := make([]util.ReservationResponse, 0)
+                for key, value := range reservation.DetailsMap </span><span class="cov8" title="24">{
+                        compositeKeys := strings.Split(key, "-")
+                        dateMatch := compositeKeys[1] + "-" + compositeKeys[2] + "-" + compositeKeys[3]
+                        windowMatch := compositeKeys[4] + "-" + compositeKeys[5]
+                        if (location == compositeKeys[0]) &amp;&amp; (date == dateMatch) &amp;&amp;
+                                (window == windowMatch) </span><span class="cov2" title="2">{
+                                reservedSlots = append(reservedSlots, value)
+                        }</span>
+                }
+                <span class="cov8" title="24">sort.Slice(reservedSlots, func(i, j int) bool </span><span class="cov1" title="1">{
+                        return reservedSlots[i].RequestTime.Before(reservedSlots[j].RequestTime)
+                }</span>)
+                <span class="cov8" title="24">result[window] = reservedSlots</span>
+        }
+
+        <span class="cov2" title="2">return result, nil</span>
+}
+
+// CancelReservation() : Cancels a reservation and removes it from a datastore
+func CancelReservation(resReq util.ReservationDetails) (string, error) <span class="cov3" title="3">{
+        reservation.Mutex.Lock()
+        location := "default"
+        if resReq.Location != "" </span><span class="cov2" title="2">{
+                location = resReq.Location
+        }</span>
+        <span class="cov3" title="3">window, err := getWindow(resReq.Time)
+        if err != nil </span><span class="cov1" title="1">{
+                reservation.Mutex.Unlock()
+                return err.Error(), err
+        }</span>
+        <span class="cov2" title="2">windowKey := location + "-" + resReq.Date + "-" + window
+        detailsKey := windowKey + "-" + resReq.Name
+
+        // Remove the reservation and reduce the count
+        delete(reservation.DetailsMap, detailsKey)
+        count := reservation.CountMap[windowKey]
+        reservation.CountMap[windowKey] = count - 1
+        reservation.Mutex.Unlock()
+        go manageWaitlist(window)
+        return util.SuccessCancellationMessage, nil</span>
+}
+
+// ConfirmReservation() : Confirms a reservation and change the status to CONFIRMED
+func ConfirmReservation(confirmRequest util.ConfirmReservation) (string, error) <span class="cov4" title="4">{
+        reservation.Mutex.Lock()
+        defer reservation.Mutex.Unlock()
+        location := "default"
+        if confirmRequest.Location != "" </span><span class="cov3" title="3">{
+                location = confirmRequest.Location
+        }</span>
+        <span class="cov4" title="4">window, err := getWindow(confirmRequest.Time)
+        if err != nil </span><span class="cov1" title="1">{
+                return util.ErrorConfirmReservation, err
+        }</span>
+        <span class="cov3" title="3">windowKey := location + "-" + confirmRequest.Date + "-" + window
+        detailsKey := windowKey + "-" + confirmRequest.Name
+
+        if value, ok := reservation.DetailsMap[detailsKey]; ok </span><span class="cov1" title="1">{
+                value.Status = "CONFIRMED"
+                reservation.DetailsMap[detailsKey] = value
+        }</span> else<span class="cov2" title="2"> {
+                return util.ErrorConfirmReservation, nil
+        }</span>
+
+        <span class="cov1" title="1">return util.SuccessConfirmReservation, nil</span>
+}
+
+// GetAvailabilities() : Function to return available spots for reservation
+func GetAvailabilities(location, date string) map[string]int <span class="cov2" title="2">{
+        result := make(map[string]int)
+
+        reservation.Mutex.Lock()
+        defer reservation.Mutex.Unlock()
+        for _, value := range windowOrder </span><span class="cov8" title="24">{
+                maxOccupancy := getMaxOccupancy(value)
+                windowKey := location + "-" + date + "-" + value
+                count := reservation.CountMap[windowKey]
+                availability := maxOccupancy - count
+                result[windowKey] = availability
+        }</span>
+        <span class="cov2" title="2">return result</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package api
+
+import (
+        "log"
+        "time"
+)
+
+// waitForConfirmation() : A forver running go routine which will check for new requests and keep track of confirmations
+func waitForConfirmation(windowKey, detailsKey string, seconds int) <span class="cov10" title="2">{
+        log.Println("Starting the confirmation goroutine")
+        timeNow := time.Now()
+        timeLater := timeNow.Add(time.Duration(time.Duration(seconds).Seconds())) // Change it to different time, if needed
+        for timeNow.Before(timeLater) </span><span class="cov0" title="0">{
+                reservation.Mutex.Lock()
+                if reservation.DetailsMap[detailsKey].Status == "CONFIRMED" </span><span class="cov0" title="0">{
+                        reservation.Mutex.Unlock()
+                        return
+                }</span>
+                <span class="cov0" title="0">reservation.Mutex.Unlock()
+                time.Sleep(time.Minute)
+                timeNow = timeNow.Add(time.Minute)</span>
+        }
+
+        // Couldn't confirm in due time, so delete the entry
+        <span class="cov10" title="2">log.Println("Auto deleting the request after timeout for: ", detailsKey)
+        reservation.Mutex.Lock()
+        delete(reservation.DetailsMap, detailsKey)
+        count := reservation.CountMap[windowKey]
+        reservation.CountMap[windowKey] = count - 1
+        reservation.Mutex.Unlock()</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package api
+
+import (
+        "fmt"
+        "log"
+        "net/smtp"
+        util "reservation_system/utilities"
+        "strconv"
+        "strings"
+        "time"
+)
+
+var clockTime = map[string]int{"1": 13, "2": 14, "3": 15, "4": 16, "5": 17, "6": 18, "7": 19, "8": 20, "9": 21}
+
+// manageWaitlist() : Goroutine to pull a waiting request for the canceled window on a FIFO basis
+func manageWaitlist(window string) <span class="cov1" title="2">{
+        log.Println("Starting waitlist routine")
+
+        queue.Mutex.Lock()
+        defer queue.Mutex.Unlock()
+        for index, request := range queue.Queue </span><span class="cov0" title="0">{
+                windowRequested := queue.Windows[index]
+                if windowRequested != window </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov0" title="0">_, err := AddReservation(request)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println("Problem in addinf the queued request", err)
+                }</span>
+
+                // remove the request from the queue
+                <span class="cov0" title="0">queue.Queue = append(queue.Queue[:index], queue.Queue[index+1:]...)
+                queue.Windows = append(queue.Windows[:index], queue.Windows[index+1:]...)
+                err = sendNotification(request)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Println("Unable to send email notification to the requestor: ", err)
+                }</span>
+                <span class="cov0" title="0">break</span>
+        }
+
+        <span class="cov1" title="2">log.Println("No interested request found")</span>
+}
+
+// sendNotification() : Example funciton to emulate sending notification
+func sendNotification(req util.ReservationDetails) error <span class="cov1" title="1">{
+        // send email notification to user
+        log.Println("Sending email to the requestor at: ", req.Email)
+        from := "testrestaurant@gmail.com"
+        password := "some password"
+
+        to := []string{req.Email}
+        smtpHost := "smtp.gmail.com"
+        smtpPort := "587"
+
+        emailMessage := fmt.Sprintf("Subject: Slot available \n\n Hi, %s,\n We've open slot for Location: %s, Date%s, Time%s. PLease confirm.",
+                req.Name, req.Location, req.Date, req.Time)
+        message := []byte(emailMessage)
+        auth := smtp.PlainAuth("", from, password, smtpHost)
+
+        // Send the email.
+        err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+        if err != nil </span><span class="cov1" title="1">{
+                log.Println("Ignoring the error as not using actual email")
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+// waitListCleanUp() : Goroutine to check every 30 minutes if some requests are invalid and removes the reequest
+func waitListCleanUp(seconds int) <span class="cov1" title="1">{
+        log.Println("Clearing up waitlist to start a fresh day")
+        for </span><span class="cov10" title="25200758">{
+                queue.Mutex.Lock()
+                for index, value := range queue.Queue </span><span class="cov1" title="1">{
+                        // Check for date
+                        today := time.Now()
+                        requestedDate, _ := time.Parse("2006-01-02", value.Date)
+                        if today.After(requestedDate) </span><span class="cov0" title="0">{
+                                // Can't serve this request, remove
+                                queue.Queue = append(queue.Queue[:index], queue.Queue[index+1:]...)
+                                queue.Windows = append(queue.Windows[:index], queue.Windows[index+1:]...)
+                                continue</span>
+                        }
+
+                        // Check for time
+                        <span class="cov1" title="1">requestedTime := value.Time
+                        requestSplits := strings.Split(requestedTime, ":")
+                        requestHour := requestSplits[0]
+                        hour := clockTime[requestHour]
+                        requestMinute := strings.Split(requestSplits[1], " ")[0]
+                        minute, _ := strconv.Atoi(requestMinute)
+                        currentHour := time.Now().Hour()
+                        currentMinutes := time.Now().Minute()
+                        if currentHour &gt; hour || currentMinutes &gt; minute || minute-currentMinutes &lt; 0 || minute-currentMinutes &lt; 10 </span><span class="cov1" title="1">{
+                                // Can't serve this request, remove
+                                queue.Queue = append(queue.Queue[:index], queue.Queue[index+1:]...)
+                                queue.Windows = append(queue.Windows[:index], queue.Windows[index+1:]...)
+                        }</span>
+                }
+                <span class="cov10" title="25200758">queue.Mutex.Unlock()
+                time.Sleep(time.Duration(time.Duration(seconds).Seconds()))</span> // Check after every 30 minutes for cleanup
+        }
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
